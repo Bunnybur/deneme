@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Sensor Fault Detection Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css">
+    <!-- Papa Parse for CSV loading -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Chart.js Time Adapter -->
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+
+<body>
+    <!-- Top Navbar -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <span class="brand-icon">📊</span>
+            <h1>IoT Sensor Fault Detection Dashboard</h1>
+        </div>
+        <div class="navbar-status">
+            <span class="status-dot" id="connectionStatus"></span>
+            <span id="statusText">Connected</span>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <!-- Left Sidebar -->
+        <aside class="sidebar">
+            <ul class="nav-menu">
+                <li class="nav-item active" data-section="overview">
+                    <span class="nav-icon">📈</span>
+                    <span>Overview</span>
+                </li>
+                <li class="nav-item" data-section="data-analysis">
+                    <span class="nav-icon">📊</span>
+                    <span>Data Analysis</span>
+                </li>
+                <li class="nav-item" data-section="visualizations">
+                    <span class="nav-icon">📉</span>
+                    <span>Visualizations</span>
+                </li>
+                <li class="nav-item" data-section="model-training">
+                    <span class="nav-icon">🤖</span>
+                    <span>Model Training</span>
+                </li>
+                <li class="nav-item" data-section="real-time-prediction">
+                    <span class="nav-icon">🔮</span>
+                    <span>Real-Time Prediction</span>
+                </li>
+                <li class="nav-item" data-section="logs">
+                    <span class="nav-icon">📋</span>
+                    <span>Logs</span>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="content">
+            <!-- Overview Section -->
+            <section id="overview" class="content-section active">
+                <h2 class="section-title">System Overview</h2>
+
+                <div class="cards-grid">
+                    <!-- KPI Cards -->
+                    <div class="card kpi-card">
+                        <div class="kpi-label">Total Records</div>
+                        <div class="kpi-value" id="totalRecords">62,629</div>
+                        <div class="kpi-subtitle">PT100 Sensor Readings</div>
+                    </div>
+
+                    <div class="card kpi-card">
+                        <div class="kpi-label">Date Range</div>
+                        <div class="kpi-value-small" id="dateRange">
+                            <div>Aug 2016</div>
+                            <div>→</div>
+                            <div>Sep 2017</div>
+                        </div>
+                        <div class="kpi-subtitle">7 Months</div>
+                    </div>
+
+                    <div class="card kpi-card success">
+                        <div class="kpi-label">Normal Range</div>
+                        <div class="kpi-value" id="normalPercent">92.1%</div>
+                        <div class="kpi-subtitle">Within 0-60°C</div>
+                    </div>
+
+                    <div class="card kpi-card warning">
+                        <div class="kpi-label">IQR Outliers</div>
+                        <div class="kpi-value" id="iqrOutliers">7.9%</div>
+                        <div class="kpi-subtitle">Statistical Anomalies</div>
+                    </div>
+
+                    <div class="card kpi-card danger">
+                        <div class="kpi-label">Extreme Faults</div>
+                        <div class="kpi-value" id="extremeFaults">0.01%</div>
+                        <div class="kpi-subtitle">&gt;100°C Readings</div>
+                    </div>
+
+                    <div class="card kpi-card">
+                        <div class="kpi-label">Model Status</div>
+                        <div class="kpi-value-small">
+                            <span class="status-badge trained">Trained</span>
+                        </div>
+                        <div class="kpi-subtitle">Isolation Forest</div>
+                    </div>
+                </div>
+
+                <!-- Summary Card -->
+                <div class="card">
+                    <h3 class="card-title">Dataset Summary</h3>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <span class="summary-label">Sensor Type:</span>
+                            <span class="summary-value">PT100 RTD</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Environment:</span>
+                            <span class="summary-value">Industrial HVAC</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Sampling Rate:</span>
+                            <span class="summary-value">Irregular</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Temperature Range:</span>
+                            <span class="summary-value" id="tempRange">...</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Mean Temperature:</span>
+                            <span class="summary-value" id="meanTemp">...</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Std Deviation:</span>
+                            <span class="summary-value" id="stdDev">...</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Data Analysis Section -->
+            <section id="data-analysis" class="content-section">
+                <h2 class="section-title">Data Analysis</h2>
+
+                <!-- Descriptive Statistics -->
+                <div class="card">
+                    <h3 class="card-title">Descriptive Statistics</h3>
+                    <div class="table-container">
+                        <table class="stats-table">
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Value (°C)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="statsTableBody">
+                                <tr>
+                                    <td>Count</td>
+                                    <td>62,629</td>
+                                </tr>
+                                <tr>
+                                    <td>Mean</td>
+                                    <td>24.38</td>
+                                </tr>
+                                <tr>
+                                    <td>Std Dev</td>
+                                    <td>6.21</td>
+                                </tr>
+                                <tr>
+                                    <td>Min</td>
+                                    <td>6.89</td>
+                                </tr>
+                                <tr>
+                                    <td>25th Percentile</td>
+                                    <td>20.50</td>
+                                </tr>
+                                <tr>
+                                    <td>Median</td>
+                                    <td>23.97</td>
+                                </tr>
+                                <tr>
+                                    <td>75th Percentile</td>
+                                    <td>27.73</td>
+                                </tr>
+                                <tr>
+                                    <td>Max</td>
+                                    <td>149.60</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- IQR Outlier Detection -->
+                <div class="card">
+                    <h3 class="card-title">IQR Outlier Detection</h3>
+                    <p class="card-description">
+                        The Interquartile Range (IQR) method identifies statistical outliers by measuring
+                        the spread of the middle 50% of the data. Values falling outside 1.5 × IQR from
+                        the quartiles are considered anomalies.
+                    </p>
+                    <div class="iqr-grid">
+                        <div class="iqr-item">
+                            <span class="iqr-label">Q1 (25th percentile)</span>
+                            <span class="iqr-value">20.50°C</span>
+                        </div>
+                        <div class="iqr-item">
+                            <span class="iqr-label">Q3 (75th percentile)</span>
+                            <span class="iqr-value">27.73°C</span>
+                        </div>
+                        <div class="iqr-item">
+                            <span class="iqr-label">IQR</span>
+                            <span class="iqr-value">7.23°C</span>
+                        </div>
+                        <div class="iqr-item">
+                            <span class="iqr-label">Lower Bound</span>
+                            <span class="iqr-value">9.65°C</span>
+                        </div>
+                        <div class="iqr-item">
+                            <span class="iqr-label">Upper Bound</span>
+                            <span class="iqr-value">38.58°C</span>
+                        </div>
+                        <div class="iqr-item highlight">
+                            <span class="iqr-label">IQR Outliers</span>
+                            <span class="iqr-value">4,949 (7.9%)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Domain Knowledge -->
+                <div class="card info-card">
+                    <h3 class="card-title">Domain Knowledge</h3>
+                    <div class="info-content">
+                        <p><strong>Expected Range for Industrial HVAC:</strong> 0°C to 60°C</p>
+                        <p><strong>PT100 Sensor Specification:</strong> -200°C to +850°C operational range</p>
+                        <p><strong>Anomaly Classification:</strong></p>
+                        <ul>
+                            <li>Values &gt; 100°C: Extreme faults (sensor malfunction)</li>
+                            <li>Values outside IQR bounds: Statistical outliers</li>
+                            <li>Values 0-60°C: Normal operating range</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Visualizations Section -->
+            <section id="visualizations" class="content-section">
+                <h2 class="section-title">Time Series Visualizations</h2>
+
+                <!-- Chart 1: Complete Time Series -->
+                <div class="card chart-card">
+                    <h3 class="card-title">Complete Time Series with Anomalies</h3>
+                    <div class="chart-container">
+                        <canvas id="chart1"></canvas>
+                    </div>
+                    <div class="chart-legend">
+                        <span class="legend-item"><span class="legend-dot" style="background: #3b82f6;"></span> All
+                            Readings</span>
+                        <span class="legend-item"><span class="legend-dot" style="background: #f59e0b;"></span> IQR
+                            Outliers</span>
+                        <span class="legend-item"><span class="legend-dot" style="background: #ef4444;"></span> Extreme
+                            Faults (&gt;100°C)</span>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Normal Operating Range -->
+                <div class="card chart-card">
+                    <h3 class="card-title">Normal Operating Range (0-60°C)</h3>
+                    <div class="chart-container">
+                        <canvas id="chart2"></canvas>
+                    </div>
+                    <div class="chart-legend">
+                        <span class="legend-item"><span class="legend-dot" style="background: #10b981;"></span> Normal
+                            Range</span>
+                        <span class="legend-item"><span class="legend-dot" style="background: #f59e0b;"></span>
+                            Outliers</span>
+                    </div>
+                </div>
+
+                <!-- Chart 3: Normal Temperature Values -->
+                <div class="card chart-card">
+                    <h3 class="card-title">Normal Temperature Values</h3>
+                    <div class="chart-container">
+                        <canvas id="chart3"></canvas>
+                    </div>
+                    <div class="chart-legend">
+                        <span class="legend-item"><span class="legend-dot" style="background: #8b5cf6;"></span>
+                            Temperature Values</span>
+                    </div>
+                </div>
+
+                <!-- Chart 4: Temperature Distribution -->
+                <div class="card chart-card">
+                    <h3 class="card-title">Temperature Distribution (Histogram)</h3>
+                    <div class="chart-container">
+                        <canvas id="chart4"></canvas>
+                    </div>
+                    <div class="chart-legend">
+                        <span class="legend-item"><span class="legend-dot" style="background: #3b82f6;"></span> Normal
+                            Range</span>
+                        <span class="legend-item"><span class="legend-dot" style="background: #f59e0b;"></span>
+                            Outliers</span>
+                        <span class="legend-item"><span class="legend-dot" style="background: #ef4444;"></span> Extreme
+                            Faults</span>
+                    </div>
+                </div>
+
+                <!-- Chart 5: Box Plot -->
+                <div class="card chart-card">
+                    <h3 class="card-title">Box Plot - Quartile Analysis</h3>
+                    <div class="chart-container">
+                        <canvas id="chart5"></canvas>
+                    </div>
+                    <p class="card-description">
+                        Visual representation of temperature distribution showing median, quartiles, and outliers.
+                        Points beyond the whiskers (1.5 × IQR) are statistical anomalies.
+                    </p>
+                </div>
+
+                <!-- Chart 6: Monthly Trends -->
+                <div class="card chart-card">
+                    <h3 class="card-title">Monthly Temperature Trends</h3>
+                    <div class="chart-container">
+                        <canvas id="chart6"></canvas>
+                    </div>
+                    <div class="chart-legend">
+                        <span class="legend-item"><span class="legend-dot" style="background: #10b981;"></span> Average
+                            Temperature</span>
+                        <span class="legend-item"><span class="legend-dot" style="background: #ef4444;"></span> Max
+                            Temperature</span>
+                        <span class="legend-item"><span class="legend-dot" style="background: #3b82f6;"></span> Min
+                            Temperature</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Model Training Section -->
+            <section id="model-training" class="content-section">
+                <h2 class="section-title">Model Training & Pipeline</h2>
+
+                <!-- Control Panel -->
+                <div class="card">
+                    <h3 class="card-title">Pipeline Controls</h3>
+                    <div class="controls-grid">
+                        <button class="btn btn-primary" id="runPipelineBtn">
+                            <span class="btn-icon">▶</span>
+                            Run Full Pipeline
+                        </button>
+                        <button class="btn btn-secondary" id="trainModelBtn">
+                            <span class="btn-icon">🤖</span>
+                            Train Model Only
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Status Panel -->
+                <div class="card">
+                    <h3 class="card-title">Pipeline Status</h3>
+                    <div class="status-grid">
+                        <div class="status-item">
+                            <span class="status-label">Current Status:</span>
+                            <span class="status-badge" id="pipelineStatus">Idle</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Last Run:</span>
+                            <span class="status-value" id="lastRunTime">Never</span>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="progress-container" id="progressContainer" style="display: none;">
+                        <div class="progress-label" id="progressLabel">Initializing...</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Model Metrics -->
+                <div class="card">
+                    <h3 class="card-title">Model Performance Metrics</h3>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-label">Contamination Rate</div>
+                            <div class="metric-value">8.0%</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Anomalies Detected</div>
+                            <div class="metric-value">4,949</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Normal Classifications</div>
+                            <div class="metric-value">57,680</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Extreme Fault Detection</div>
+                            <div class="metric-value">100%</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Model Type</div>
+                            <div class="metric-value-small">Isolation Forest</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">n_estimators</div>
+                            <div class="metric-value">100</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Real-Time Prediction Section -->
+            <section id="real-time-prediction" class="content-section">
+                <h2 class="section-title">Real-Time Anomaly Detection</h2>
+
+                <!-- API Status Card -->
+                <div class="card">
+                    <h3 class="card-title">API Connection Status</h3>
+                    <div class="api-status-grid">
+                        <div class="status-item">
+                            <span class="status-label">FastAPI Server:</span>
+                            <span class="status-badge" id="apiStatus">Checking...</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Model Status:</span>
+                            <span class="status-value" id="modelStatus">Unknown</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Scaler Status:</span>
+                            <span class="status-value" id="scalerStatus">Unknown</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prediction Input Card -->
+                <div class="card prediction-card">
+                    <h3 class="card-title">Test Sensor Value</h3>
+                    <p class="card-description">
+                        Enter a temperature value to check if it's an anomaly using the trained Isolation Forest model.
+                        The API will automatically standardize the value and return the prediction.
+                    </p>
+
+                    <div class="prediction-input-section">
+                        <div class="input-group">
+                            <label for="sensorValue" class="input-label">
+                                Temperature Value (°C)
+                            </label>
+                            <div class="input-wrapper">
+                                <input type="number" id="sensorValue" class="input-field"
+                                    placeholder="Enter temperature (e.g., 24.5)" step="0.1" min="-50" max="200">
+                                <button id="predictBtn" class="btn btn-primary">
+                                    <span class="btn-icon">🔮</span>
+                                    Predict Anomaly
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="quick-test-buttons">
+                            <p class="quick-test-label">Quick Test:</p>
+                            <button class="btn btn-small btn-test" data-value="24.5">Normal (24.5°C)</button>
+                            <button class="btn btn-small btn-test" data-value="10.0">Edge (10.0°C)</button>
+                            <button class="btn btn-small btn-test" data-value="150.0">Anomaly (150.0°C)</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prediction Result Card -->
+                <div class="card prediction-result-card" id="predictionResultCard" style="display: none;">
+                    <h3 class="card-title">Prediction Result</h3>
+
+                    <!-- Result Header -->
+                    <div class="result-header" id="resultHeader">
+                        <div class="result-icon" id="resultIcon">⚠️</div>
+                        <div class="result-main">
+                            <div class="result-title" id="resultTitle">NORMAL</div>
+                            <div class="result-subtitle" id="resultSubtitle">No anomaly detected</div>
+                        </div>
+                    </div>
+
+                    <!-- Result Details -->
+                    <div class="result-details">
+                        <div class="result-grid">
+                            <div class="result-item">
+                                <span class="result-label">Input Value:</span>
+                                <span class="result-value" id="resultInputValue">--</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label">Standardized:</span>
+                                <span class="result-value" id="resultStandardized">--</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label">Anomaly Score:</span>
+                                <span class="result-value" id="resultScore">--</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label">Confidence:</span>
+                                <span class="result-value" id="resultConfidence">--</span>
+                            </div>
+                        </div>
+
+                        <!-- Score Visualization -->
+                        <div class="score-visualization">
+                            <div class="score-bar-label">Anomaly Score Scale</div>
+                            <div class="score-bar-container">
+                                <div class="score-bar">
+                                    <div class="score-marker" id="scoreMarker"></div>
+                                </div>
+                                <div class="score-bar-labels">
+                                    <span>-0.75<br>(Anomaly)</span>
+                                    <span>-0.50<br>(Medium)</span>
+                                    <span>-0.43<br>(Normal)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Interpretation -->
+                        <div class="result-interpretation" id="resultInterpretation">
+                            <strong>Interpretation:</strong> This value appears normal according to the model.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prediction History Card -->
+                <div class="card">
+                    <h3 class="card-title">Prediction History</h3>
+                    <div class="table-container">
+                        <table class="stats-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Value (°C)</th>
+                                    <th>Score</th>
+                                    <th>Result</th>
+                                    <th>Confidence</th>
+                                </tr>
+                            </thead>
+                            <tbody id="predictionHistoryBody">
+                                <tr>
+                                    <td colspan="5" style="text-align: center; color: var(--text-muted);">No predictions
+                                        yet</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Logs Section -->
+            <section id="logs" class="content-section">
+                <h2 class="section-title">System Logs</h2>
+
+                <div class="card logs-card">
+                    <div class="logs-header">
+                        <h3 class="card-title">Pipeline Execution Logs</h3>
+                        <button class="btn btn-small" id="clearLogsBtn">Clear Logs</button>
+                    </div>
+                    <div class="logs-container" id="logsContainer">
+                        <div class="log-entry info">[2024-12-04 22:30:00] System initialized</div>
+                        <div class="log-entry">[2024-12-04 22:30:01] Dashboard loaded successfully</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+
+</html>
