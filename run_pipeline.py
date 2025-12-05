@@ -7,7 +7,7 @@ Steps:
 1. Data cleaning (drop SensorId, handle nulls)
 2. Data standardization (StandardScaler)
 3. Data analysis (visualizations)
-4. Model training (Isolation Forest)
+4-6. Model training (Supervised ML + Isolation Forest + Autoencoder)
 
 Usage: python run_pipeline.py [--skip-viz]
 """
@@ -51,10 +51,12 @@ def main():
     
     # Pipeline steps
     steps = [
-        ("Step 1: Data Cleaning", "src/data_clean.py", False),
-        ("Step 2: Data Standardization", "src/data_standardization.py", False),
-        ("Step 3: Data Analysis", "src/data_analysis.py", skip_viz),
-        ("Step 4: Model Training", "src/train_model.py", False),
+        ("Step 1: Data Cleaning", "src/1_clean_data.py", False),
+        ("Step 2: Data Standardization", "src/2_standardize_dataset.py", False),
+        ("Step 3: Data Analysis", "src/3_analyze_data.py", skip_viz),
+        ("Step 4: Train Supervised Models", "src/4_train_supervised_models.py", False),
+        ("Step 5: Train Isolation Forest", "src/5_train_isolation_forest.py", False),
+        ("Step 6: Train Autoencoder", "src/6_train_autoencoder.py", False),
     ]
     
     # Run each step
@@ -68,7 +70,10 @@ def main():
     print(f"\n{'='*70}")
     print("🎉 PIPELINE COMPLETE!")
     print(f"{'='*70}\n")
-    print("✅ All steps completed successfully")
+    print("✅ All 6 steps completed successfully")
+    print("\nModels Trained:")
+    print("  → Supervised: Random Forest, Gradient Boosting, XGBoost, Logistic Regression")
+    print("  → Unsupervised: Isolation Forest, Autoencoder")
     print("\nNext Steps:")
     print("  → Run 'python src/main.py' to start the API server")
     print("  → Or run 'uvicorn src.main:app --reload' for development")

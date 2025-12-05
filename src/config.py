@@ -1,7 +1,3 @@
-"""
-Configuration file for Sensor Fault Detection System
-Centralizes all file paths and parameters
-"""
 import os
 
 # Base directories
@@ -17,7 +13,7 @@ CLEANED_DATA_PATH = os.path.join(PROCESSED_DATA_DIR, 'sensor_data_cleaned.csv')
 STANDARDIZED_DATA_PATH = os.path.join(PROCESSED_DATA_DIR, 'sensor_data_standardized.csv')
 
 # Model files
-MODEL_PATH = os.path.join(MODELS_DIR, 'isolation_forest_model.pkl')
+MODEL_PATH = os.path.join(MODELS_DIR, 'random_forest_model.pkl')
 SCALER_PATH = os.path.join(MODELS_DIR, 'standard_scaler.pkl')
 
 # Model parameters

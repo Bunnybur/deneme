@@ -1,18 +1,3 @@
-"""
-FastAPI Application - Sensor Fault Detection System
-====================================================
-RESTful API for real-time sensor fault detection using ML.
-
-Endpoints:
-- POST /predict: Predict if a sensor value is anomalous
-- GET /readings: Get all stored readings
-- POST /readings: Create a new reading
-- PUT /readings/{id}: Update a reading
-- DELETE /readings/{id}: Delete a reading
-- GET /stats: Get statistics
-
-Author: Advanced Computer Programming Course
-"""
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,14 +17,14 @@ from src.config import MODEL_PATH, SCALER_PATH, API_HOST, API_PORT
 # ============================================================================
 
 class PredictionRequest(BaseModel):
-    """Request model for /predict endpoint."""
+    
     value: float = Field(..., description="Temperature value in °C")
     
     class Config:
         json_schema_extra = {"example": {"value": 25.5}}
 
 class PredictionResponse(BaseModel):
-    """Response model for /predict endpoint."""
+    
     value: float
     status: str
     confidence_score: float = Field(..., description="Anomaly score from model")
@@ -50,7 +35,7 @@ class PredictionResponse(BaseModel):
         }
 
 class ReadingCreate(BaseModel):
-    """Request model for creating a reading."""
+    
     timestamp: str
     value: float
     
@@ -60,7 +45,7 @@ class ReadingCreate(BaseModel):
         }
 
 class ReadingUpdate(BaseModel):
-    """Request model for updating a reading."""
+    
     timestamp: Optional[str] = None
     value: Optional[float] = None
     
@@ -68,7 +53,7 @@ class ReadingUpdate(BaseModel):
         json_schema_extra = {"example": {"value": 30.0}}
 
 class Reading(BaseModel):
-    """Response model for a reading."""
+    
     id: int
     timestamp: str
     value: float
@@ -87,7 +72,7 @@ class Reading(BaseModel):
         }
 
 class DeleteResponse(BaseModel):
-    """Response for delete operations."""
+    
     message: str
     deleted_id: int
 
@@ -97,7 +82,7 @@ class DeleteResponse(BaseModel):
 
 app = FastAPI(
     title="Sensor Fault Detection API",
-    description="IoT sensor fault detection using Isolation Forest ML",
+    description="IoT sensor fault detection using supervised machine learning",
     version="2.0.0"
 )
 
@@ -109,15 +94,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ============================================================================
-# GLOBAL STATE
-# ============================================================================
 
-# In-memory database
 readings_db: Dict[int, dict] = {}
 next_id: int = 1
 
-# ML model and scaler
+
 model = None
 scaler = None
 
@@ -142,43 +123,39 @@ async def load_models():
             print("  Run the data pipeline first:")
             print("    1. python src/data_clean.py")
             print("    2. python src/data_standardization.py")
-            print("    3. python src/train_model.py")
+            print("    3. python src/train_supervised_models.py")
     except Exception as e:
         print(f"\n⚠️  Error loading model: {e}")
     
     print("\n" + "="*60)
 
-# ============================================================================
-# HELPER FUNCTIONS
-# ============================================================================
-
 def predict_value(value: float) -> tuple:
     """
-    Predict if a value is anomalous.
+    Predict if a value is a fault using supervised classification.
     
     Returns:
         tuple: (status_str, confidence_score)
+            status_str: "Normal" or "Fault"
+            confidence_score: probability of fault (0.0-1.0)
     """
     if model is None or scaler is None:
-        # Fallback: threshold-based
         if value > 100 or value < -50:
-            return "Fault", -1.0
+            return "Fault", 1.0
         return "Normal", 0.0
     
     try:
         value_scaled = scaler.transform([[value]])
         prediction = model.predict(value_scaled)[0]
-        score = model.score_samples(value_scaled)[0]
+        probabilities = model.predict_proba(value_scaled)[0]
         
-        status = "Fault" if prediction == -1 else "Normal"
-        return status, float(score)
+        status = "Fault" if prediction == 1 else "Normal"
+        fault_probability = float(probabilities[1])
+        
+        return status, fault_probability
     except Exception as e:
         print(f"Error in prediction: {e}")
         return "Normal", 0.0
 
-# ============================================================================
-# API ENDPOINTS
-# ============================================================================
 
 @app.get("/", tags=["Root"])
 async def root():
@@ -198,10 +175,10 @@ async def root():
 @app.post("/predict", response_model=PredictionResponse, tags=["Prediction"])
 async def predict_fault(request: PredictionRequest):
     """
-    Predict if a sensor reading is anomalous.
+    Predict if a sensor reading is a fault.
     
-    Uses Isolation Forest trained on historical data.
-    Returns prediction and confidence score.
+    Uses supervised ML classifier trained on labeled data.
+    Returns prediction status and fault probability (0.0-1.0).
     """
     status, score = predict_value(request.value)
     
@@ -225,10 +202,10 @@ async def create_reading(reading: ReadingCreate):
     """
     global next_id
     
-    # Classify using ML
+    
     classification, score = predict_value(reading.value)
     
-    # Create reading
+    
     new_reading = {
         "id": next_id,
         "timestamp": reading.timestamp,
@@ -314,9 +291,6 @@ async def get_statistics():
         "fault_percentage": round((fault_count / total) * 100, 2)
     }
 
-# ============================================================================
-# MAIN ENTRY POINT
-# ============================================================================
 
 if __name__ == "__main__":
     import uvicorn

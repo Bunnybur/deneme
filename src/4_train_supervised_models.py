@@ -369,6 +369,26 @@ def main():
     # Save models
     save_models(lr_model, rf_model, gb_model, xgb_model)
     
+    # Copy best model to MODEL_PATH for API
+    print(f"\n[6] Copying best model to API path...")
+    model_mapping = {
+        'Logistic Regression': lr_model,
+        'Random Forest Classifier': rf_model,
+        'Gradient Boosting Classifier': gb_model,
+        'XGBoost Classifier': xgb_model
+    }
+    
+    best_model_obj = model_mapping.get(best_model)
+    if best_model_obj:
+        from src.config import MODEL_PATH
+        joblib.dump(best_model_obj, MODEL_PATH)
+        file_size = os.path.getsize(MODEL_PATH) / 1024
+        print(f"    ✓ Best model copied to MODEL_PATH")
+        print(f"      Model: {best_model}")
+        print(f"      Path: {MODEL_PATH}")
+        print(f"      Size: {file_size:.2f} KB")
+        print(f"    → FastAPI will now load: {best_model}")
+    
     # Summary
     print("\n" + "="*70)
     print("TRAINING COMPLETE")
@@ -377,8 +397,8 @@ def main():
     print("✓ Models saved to:", MODELS_DIR)
     print(f"\nBest performing model: {best_model}")
     print("\nNext Steps:")
-    print("  → Use these models for real-time fault detection")
-    print("  → Deploy the best model in production API")
+    print("  → Start FastAPI to use the best model automatically")
+    print("  → Run 'python src/main.py' to start the API server")
     print("="*70)
 
 
